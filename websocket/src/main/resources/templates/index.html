@@ -4,12 +4,39 @@
     <title>聊天窗</title>
     <script th:src="'https://code.jquery.com/jquery-3.3.1.min.js'"></script>
     <script>
-        var name = "[[${name}]]";
-        var target = "[[${target}]]";
-        var socket;
-        createSocket(name);
-        function createSocket(name){
-            var url = "ws://localhost:8001/webSocket/websocket/" + name + "/" + target;
+        var name = "[[${name}]]",address = "47.93.219.36:8080",target, socket;
+
+        $(function(){
+            $.ajax({
+                url: "list",
+                type: "get",
+                dataType : "json",
+                success: function (msg) {
+                    var html = genList(msg);
+                    $("#list").html(genList(msg));
+                }
+            });
+            function genList(msg){
+                var gentle = new Array("小哥哥","小姐姐");
+                var html = "<ul>";
+                $.each(msg, function (n, value) {
+                    if(name == value.nickName){ return; }
+                    html += "<li><a href='javascript:toChart(\""+value.nickName+"\");'>" + value.nickName + "(" + gentle[value.gentle] + ")</a></li>";
+                });
+                html += "</ul>";
+                return html;
+            }
+        })
+
+        function toChart(nickName){
+            target = nickName;
+            createSocket()
+            $("#content").html("");
+            $("#chart_box").show();
+        }
+
+        function createSocket(){
+            var url = "ws://" + address + "/webSocket/websocket/" + name + "/" + target;
             socket = new WebSocket(url);
             socket.onopen = function() {
                 // Web Socket 已连接上，使用 send() 方法发送数据
@@ -23,7 +50,7 @@
 
             socket.onclose = function() {
                 // 关闭 websocket
-                alert(name+"连接已关闭...");
+                alert(name+"连接已断开...");
             };
         }
         $(function(){
@@ -37,27 +64,35 @@
             $("#content").append("<p>").append(name).append(":").append(content).append("</p>");
         }
         function receiveMsg(socket,content){
-            $("#content").append("<p>").append(content).append("</p>");
+            var sender = received_msg.split(":")[0];
+            if(target == sender){
+                $("#content").append("<p>").append(content).append("</p>");
+            }else{
+
+            }
         }
 
     </script>
 </head>
 <body class="layui-layout-body">
 <div class="layui-layout layui-layout-admin">
-    <div class="layui-body" style="">
+    <div class="layui-body" style="width: 500px;margin: auto;">
+        <h4>在线列表</h4>
+        <div id="list">
 
+        </div>
+    </div>
+    <div id="chart_box" class="layui-body" style="width: 500px;margin: auto;display: none;">
         <!-- 聊天框 -->
-        <div id="chart_box">
-            <h5>欢迎使用丑陋的在线聊天 ！</h5>
-            <!--内容框-->
-            <div id="content">
+        <h5>欢迎使用在线聊天 ！</h5>
+        <!--内容框-->
+        <div id="content">
 
-            </div>
-            <!--输入框-->
-            <div id="input">
-                <input id="sendMsg" type="text" value=""/>
-                <input id="sendButton" type="button" value="发送"/>
-            </div>
+        </div>
+        <!--输入框-->
+        <div id="input">
+            <input id="sendMsg" type="text" value=""/>
+            <input id="sendButton" type="button" value="发送"/>
         </div>
     </div>
 </div>

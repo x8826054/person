@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>填写信息</title>
+    <script th:src="'https://code.jquery.com/jquery-3.3.1.min.js'"></script>
+    <script>
+        $(function(){
+            $("#go").click(function(){
+                if(""===$("#nickName").val()) {
+                    alert("给自己取个昵称吧!");
+                    return;
+                }
+                $("#msg").submit();
+            });
+        })
+    </script>
+</head>
+<body class="layui-layout-body">
+<div class="layui-layout layui-layout-admin">
+    <div class="layui-body" style="">
+
+        <!-- 聊天框 -->
+        <div id="chart_box" style="width: 400px; height: 200px;margin: auto;">
+            <h5>聊天前做个自我介绍吧 ！</h5>
+            <!--内容框-->
+            <form id="msg" action="go">
+                <h6>昵称</h6>
+                <input name="nickName" id="nickName" type="text" value=""/>
+                <h6>性别</h6>
+                <input name="gentle" type="radio" value="0" checked="checked"> 男
+                <input name="gentle" type="radio" value="1" > 女
+                <br/>
+                <br/>
+                <input type="button" id="go" value="介绍完毕">
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+</html>

@@ -1,9 +1,15 @@
 package com.person.websocket.controller;
 
+import com.person.websocket.model.Charter;
+import com.person.websocket.util.OnlinePool;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * 类说明
@@ -16,10 +22,26 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @Controller
 public class IndexController {
 
-    @RequestMapping({"/", "/index"})
-    public String register(String name, String target, Model model) {
-        model.addAttribute("name", StringUtils.isEmpty(name) ? "李四" : name);
-        model.addAttribute("target", StringUtils.isEmpty(name) ? "张三" : target);
+    @RequestMapping("/")
+    public String inputMessage() {
+        return "inputMessage";
+    }
+
+    @RequestMapping("/go")
+    public String go(Charter charter, Model model) {
+        OnlinePool.onlineCharter.put(charter.getNickName(), charter);
+        model.addAttribute("name", charter.getNickName());
         return "index";
     }
+
+    @ResponseBody
+    @RequestMapping("/list")
+    public Map<String, Object> list() {
+        Map<String, Object> dataMap = new HashMap<>();
+        dataMap.putAll(OnlinePool.onlineCharter);
+        return dataMap;
+    }
+
+
+
 }

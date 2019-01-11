@@ -1,6 +1,7 @@
 package com.person.websocket.handler;
 
 import com.person.websocket.model.Charter;
+import com.person.websocket.util.OnlinePool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -55,6 +56,7 @@ public class WebSocketServer {
     @OnClose
     public void OnClose(@PathParam("charter") String charter) {
         sessionMap.remove(charter);
+        OnlinePool.onlineCharter.remove(charter);
         log.info("有连接断开！");
     }
 
