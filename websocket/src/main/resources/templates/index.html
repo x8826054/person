@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>聊天窗</title>
+    <script th:src="'https://code.jquery.com/jquery-3.3.1.min.js'"></script>
+    <script>
+        var name = "[[${name}]]";
+        var target = "[[${target}]]";
+        var socket;
+        createSocket(name);
+        function createSocket(name){
+            var url = "ws://localhost:8001/webSocket/websocket/" + name + "/" + target;
+            socket = new WebSocket(url);
+            socket.onopen = function() {
+                // Web Socket 已连接上，使用 send() 方法发送数据
+                //sendMsg(socket,"你好李四");
+            };
+
+            socket.onmessage = function (evt) {
+                var received_msg = evt.data;
+                receiveMsg(socket,received_msg);
+            };
+
+            socket.onclose = function() {
+                // 关闭 websocket
+                alert(name+"连接已关闭...");
+            };
+        }
+        $(function(){
+            $("#sendButton").click(function(){
+                sendMsg(socket, $("#sendMsg").val());
+                $("#sendMsg").val("");
+            });
+        });
+        function sendMsg(socket,content){
+            socket.send(content);
+            $("#content").append("<p>").append(name).append(":").append(content).append("</p>");
+        }
+        function receiveMsg(socket,content){
+            $("#content").append("<p>").append(content).append("</p>");
+        }
+
+    </script>
+</head>
+<body class="layui-layout-body">
+<div class="layui-layout layui-layout-admin">
+    <div class="layui-body" style="">
+
+        <!-- 聊天框 -->
+        <div id="chart_box">
+            <h5>欢迎使用丑陋的在线聊天 ！</h5>
+            <!--内容框-->
+            <div id="content">
+
+            </div>
+            <!--输入框-->
+            <div id="input">
+                <input id="sendMsg" type="text" value=""/>
+                <input id="sendButton" type="button" value="发送"/>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
