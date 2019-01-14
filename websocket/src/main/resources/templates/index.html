@@ -98,7 +98,7 @@
         }
 
         /**
-         * 好友上线提示
+         * 好友上线处理
          */
         function onlineRemind(msg){
             var remindMsg = msg.content;
@@ -113,7 +113,7 @@
         }
 
         /**
-         * 好友离线提示
+         * 好友离线处
          */
         function offLineRemind(msg){
             var charter = msg.remark;
@@ -122,6 +122,10 @@
             }
         }
 
+        /**
+         * 刷新或关闭页面前,关闭socket连接
+         * @param event
+         */
         window.onbeforeunload = function(event) {
             socket.close();
         };
@@ -131,17 +135,13 @@
 <div class="layui-layout layui-layout-admin">
     <div class="layui-body" style="width: 500px;margin: auto;">
         <h4>在线列表</h4>
-        <div id="list">
-
-        </div>
+        <div id="list"></div>
     </div>
     <div id="chart_box" class="layui-body" style="width: 500px;margin: auto;display: none;">
         <!-- 聊天框 -->
         <h5>欢迎使用在线聊天 ！</h5>
         <!--内容框-->
-        <div id="content">
-
-        </div>
+        <div id="content"></div>
         <!--输入框-->
         <div id="input">
             <input id="sendMsg" type="text" value=""/>
