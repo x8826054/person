@@ -37,11 +37,12 @@ public class WebSocketServer {
     @OnOpen
     public void onOpen(@PathParam("id") String id, Session session) {
         Charter charter = OnlinePool.onlineCharter.get(id);
-        if (charter != null) {
-            for (Map.Entry<String, Session> stringSessionEntry : sessionMap.entrySet()) {
-                sendMessage(stringSessionEntry.getValue(), new Message(proxyContent(String.format("老吊【%s】上线了", charter.getNickName()),
-                        MessageType.ONLINE_REMIND_MESSAGE.getCode()), MessageType.ONLINE_REMIND_MESSAGE.getCode(), charter));
-            }
+        if (charter == null) {
+            return;
+        }
+        for (Map.Entry<String, Session> stringSessionEntry : sessionMap.entrySet()) {
+            sendMessage(stringSessionEntry.getValue(), new Message(proxyContent(String.format("老吊【%s】上线了", charter.getNickName()),
+                    MessageType.ONLINE_REMIND_MESSAGE.getCode()), MessageType.ONLINE_REMIND_MESSAGE.getCode(), charter));
         }
         sessionMap.put(id, session);
     }
@@ -49,6 +50,9 @@ public class WebSocketServer {
     @OnMessage
     public void onMessage(@PathParam("id") String id, String message, Session session) {
         Charter charter = OnlinePool.onlineCharter.get(id);
+        if (charter == null) {
+            return;
+        }
         log.info("来自客户端{}的消息:{}", charter.getNickName(), message);
         Message msg = JSONObject.parseObject(message, Message.class);
         Session targetSession = sessionMap.get(msg.getTarget());

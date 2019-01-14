@@ -56,7 +56,7 @@
             };
             // 关闭 websocket
             socket.onclose = function() {
-                alert(name+"连接已断开...");
+                //alert(name+"连接已断开...");
             };
         }
         $(function(){
@@ -100,14 +100,17 @@
         function onlineRemind(msg){
             var remindMsg = msg.content;
             var sender = msg.remark;
+            if($("#list").html().indexOf(sender.id) > -1){ return; }
             var html = "<li id='"+sender.id+"'><a href='javascript:toChart(\""+sender.id+"\");'>" + sender.nickName + "(" + gentle[sender.gentle] + ")</a></li>";
-            if($("#list").html().indexOf("<li>") > -1) {
+            if($("#list").find("li").length > 0) {
                 $("#list").append(html);
             } else {
                 $("#list").html(html);
             }
         }
-
+        window.onbeforeunload = function(event) {
+            socket.close();
+        };
     </script>
 </head>
 <body class="layui-layout-body">
