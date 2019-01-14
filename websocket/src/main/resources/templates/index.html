@@ -27,6 +27,13 @@
                 }
                 return html;
             }
+            /**
+             * 点击事件,资源加载完毕进行监听
+             */
+            $("#sendButton").click(function(){
+                sendMsg($("#sendMsg").val());
+                $("#sendMsg").val("");
+            });
             createSocket();
         });
 
@@ -62,12 +69,6 @@
                 createSocket();
             };
         }
-        $(function(){
-            $("#sendButton").click(function(){
-                sendMsg($("#sendMsg").val());
-                $("#sendMsg").val("");
-            });
-        });
 
         /**
          * 发送消息
@@ -129,6 +130,7 @@
         window.onbeforeunload = function(event) {
             socket.close();
         };
+
     </script>
 </head>
 <body class="layui-layout-body">
