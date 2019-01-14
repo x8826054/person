@@ -53,6 +53,8 @@
                 if(msg.type == "1" || msg.type == "2"){ receiveMsg(msg); }
                 // 3.上线提醒
                 if(msg.type == "3"){ onlineRemind(msg); }
+                // 3.离线提醒
+                if(msg.type == "4"){ offLineRemind(msg); }
             };
             // 关闭 websocket
             socket.onclose = function() {
@@ -95,7 +97,7 @@
         }
 
         /**
-         * 收到好友上线提示
+         * 好友上线提示
          */
         function onlineRemind(msg){
             var remindMsg = msg.content;
@@ -108,6 +110,17 @@
                 $("#list").html(html);
             }
         }
+
+        /**
+         * 好友离线提示
+         */
+        function offLineRemind(msg){
+            var charter = msg.remark;
+            if($("#list").html().indexOf(charter.id) > -1){
+                $("#" + charter.id).remove();
+            }
+        }
+
         window.onbeforeunload = function(event) {
             socket.close();
         };

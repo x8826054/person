@@ -13,7 +13,6 @@ import org.springframework.stereotype.Component;
 import javax.websocket.*;
 import javax.websocket.server.PathParam;
 import javax.websocket.server.ServerEndpoint;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -65,8 +64,13 @@ public class WebSocketServer {
 
     @OnClose
     public void OnClose(@PathParam("id") String id) {
+        Charter charter = OnlinePool.onlineCharter.get(id);
         sessionMap.remove(id);
         OnlinePool.onlineCharter.remove(id);
+        for (Map.Entry<String, Session> stringSessionEntry : sessionMap.entrySet()) {
+            sendMessage(stringSessionEntry.getValue(), new Message(proxyContent(String.format("老吊【%s】下线了", charter.getNickName()),
+                    MessageType.OFF_LINE_REMIND_MESSAGE.getCode()), MessageType.OFF_LINE_REMIND_MESSAGE.getCode(), charter));
+        }
         log.info("{}断开连接", id);
     }
 
