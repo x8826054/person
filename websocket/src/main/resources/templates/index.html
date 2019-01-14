@@ -4,71 +4,107 @@
     <title>聊天窗</title>
     <script th:src="'https://code.jquery.com/jquery-3.3.1.min.js'"></script>
     <script>
-        var name = "[[${name}]]",address = "47.93.219.36:8080",target, socket;
-
+        var name = "[[${name}]]",id = "[[${id}]]",address = "47.93.219.36:8080",target, socket;
+        var gentle = new Array("小哥哥","小姐姐");
+        address = "127.0.0.1:8001";
         $(function(){
             $.ajax({
                 url: "list",
                 type: "get",
                 dataType : "json",
                 success: function (msg) {
-                    var html = genList(msg);
                     $("#list").html(genList(msg));
                 }
             });
             function genList(msg){
-                var gentle = new Array("小哥哥","小姐姐");
-                var html = "<ul>";
+                var html = "";
                 $.each(msg, function (n, value) {
-                    if(name == value.nickName){ return; }
-                    html += "<li><a href='javascript:toChart(\""+value.nickName+"\");'>" + value.nickName + "(" + gentle[value.gentle] + ")</a></li>";
+                    if(id == value.id){ return; }
+                    html += "<li id='"+value.id+"'><a href='javascript:toChart(\""+value.id+"\");'>" + value.nickName + "(" + gentle[value.gentle] + ")</a></li>";
                 });
-                html += "</ul>";
+                if(html.indexOf("li") == -1){
+                    html += "<h5>暂无老吊在线</h5>";
+                }
                 return html;
             }
-        })
+            createSocket();
+        });
 
-        function toChart(nickName){
-            target = nickName;
-            createSocket()
-            $("#content").html("");
+        // 打开聊天窗
+        function toChart(id){
+            target = id;
+            $("#" + id).find("span").remove();
+            var toRead = $("#" + id + "_toRead").html();
+            $("#content").html(toRead);
             $("#chart_box").show();
+            $("#" + id + "_toRead").remove();
         }
 
         function createSocket(){
-            var url = "ws://" + address + "/webSocket/websocket/" + name + "/" + target;
+            var url = "ws://" + address + "/webSocket/websocket/" + id;
             socket = new WebSocket(url);
+            // Web Socket 已连接上
             socket.onopen = function() {
-                // Web Socket 已连接上，使用 send() 方法发送数据
-                //sendMsg(socket,"你好李四");
             };
-
-            socket.onmessage = function (evt) {
-                var received_msg = evt.data;
-                receiveMsg(socket,received_msg);
+            // 收到消息监听事件
+            socket.onmessage = function (msg) {
+                msg = JSON.parse(msg.data);
+                // 1.好友消息 2.系统提示
+                if(msg.type == "1" || msg.type == "2"){ receiveMsg(msg); }
+                // 3.上线提醒
+                if(msg.type == "3"){ onlineRemind(msg); }
             };
-
+            // 关闭 websocket
             socket.onclose = function() {
-                // 关闭 websocket
                 alert(name+"连接已断开...");
             };
         }
         $(function(){
             $("#sendButton").click(function(){
-                sendMsg(socket, $("#sendMsg").val());
+                sendMsg($("#sendMsg").val());
                 $("#sendMsg").val("");
             });
         });
-        function sendMsg(socket,content){
-            socket.send(content);
+
+        /**
+         * 发送消息
+         */
+        function sendMsg(content){
+            socket.send(JSON.stringify({target: target,content: content}));
             $("#content").append("<p>").append(name).append(":").append(content).append("</p>");
         }
-        function receiveMsg(socket,content){
-            var sender = received_msg.split(":")[0];
-            if(target == sender){
-                $("#content").append("<p>").append(content).append("</p>");
-            }else{
 
+        /**
+         * 收到好友/系统消息处理(type = 1/2)
+         * @param socket
+         * @param content
+         */
+        function receiveMsg(msg){
+            var charter = msg.remark;
+            // 处理系统消息
+            if(msg.type=="2"){
+                $("#content").append("<b>").append(msg.content).append("</b>");
+            }else if(target == charter.id){
+                // 当前窗口
+                $("#content").append("<p>").append(msg.content).append("</p>");
+            }else{
+                // 非当前窗口
+                var html = "<div id='"+charter.id +"_toRead' style='display: none;'><p>" + msg.content + "</p></div>";
+                $("#"+charter.id).append("<span>&nbsp;有未读消息</span>").append(html);
+            }
+        }
+
+        /**
+         * 收到好友上线提示
+         */
+        function onlineRemind(msg){
+            var remindMsg = msg.content;
+            var sender = msg.remark;
+            var html = "<li id='"+sender.id+"'><a href='javascript:toChart(\""+sender.id+"\");'>" + sender.nickName + "(" + gentle[sender.gentle] + ")</a></li>";
+            if($("#list").html().indexOf("<li>") > -1) {
+                $("#list").append(html);
+            } else {
+                $("#list").html(html);
             }
         }
 

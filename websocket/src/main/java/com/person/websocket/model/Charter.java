@@ -10,6 +10,12 @@ package com.person.websocket.model;
  */
 public class Charter {
 
+
+    /**
+     * id
+     */
+    private String id;
+
     /**
      * 网名
      */
@@ -29,6 +35,10 @@ public class Charter {
      * 座右铭
      */
     private String motto;
+
+    public String getId() { return id; }
+
+    public void setId(String id) { this.id = id; }
 
     public String getNickName() { return nickName; }
 

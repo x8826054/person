@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * 类说明
@@ -29,8 +30,11 @@ public class IndexController {
 
     @RequestMapping("/go")
     public String go(Charter charter, Model model) {
-        OnlinePool.onlineCharter.put(charter.getNickName(), charter);
+        //charter.setId(UUID.randomUUID().toString().replace("-", ""));
+        charter.setId(charter.getNickName());
+        OnlinePool.onlineCharter.put(charter.getId(), charter);
         model.addAttribute("name", charter.getNickName());
+        model.addAttribute("id", charter.getId());
         return "index";
     }
 
