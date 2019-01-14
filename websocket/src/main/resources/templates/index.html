@@ -58,7 +58,8 @@
             };
             // 关闭 websocket
             socket.onclose = function() {
-                //alert(name+"连接已断开...");
+                // 重连
+                createSocket();
             };
         }
         $(function(){
