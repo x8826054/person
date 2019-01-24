@@ -31,7 +31,7 @@ public class Message implements Serializable{
     private String target;
 
     /**
-     * 消息类型: 1.好友信息  2.系统提示  3.好友上线提示
+     * 消息类型: 1.好友信息  2.群聊信息  3.系统提示  4.好友上线提示
      */
     private Integer type;
 

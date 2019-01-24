@@ -1,10 +1,10 @@
 package com.person.websocket.controller;
 
-import com.person.websocket.model.Charter;
+import com.person.websocket.enums.GroupChatEnum;
+import com.person.websocket.model.Chatter;
 import com.person.websocket.util.OnlinePool;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
@@ -29,12 +29,12 @@ public class IndexController {
     }
 
     @RequestMapping("/go")
-    public String go(Charter charter, Model model) {
-        //charter.setId(UUID.randomUUID().toString().replace("-", ""));
-        charter.setId(charter.getNickName());
-        OnlinePool.onlineCharter.put(charter.getId(), charter);
-        model.addAttribute("name", charter.getNickName());
-        model.addAttribute("id", charter.getId());
+    public String go(Chatter chatter, Model model) {
+        chatter.setId(UUID.randomUUID().toString().replace("-", ""));
+        OnlinePool.onlineChatter.put(chatter.getId(), chatter);
+        model.addAttribute("name", chatter.getNickName());
+        model.addAttribute("id", chatter.getId());
+        model.addAttribute("all", GroupChatEnum.ALL_GROUP.getCode());
         return "index";
     }
 
@@ -42,7 +42,7 @@ public class IndexController {
     @RequestMapping("/list")
     public Map<String, Object> list() {
         Map<String, Object> dataMap = new HashMap<>();
-        dataMap.putAll(OnlinePool.onlineCharter);
+        dataMap.putAll(OnlinePool.onlineChatter);
         return dataMap;
     }
 

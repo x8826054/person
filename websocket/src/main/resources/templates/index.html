@@ -2,11 +2,12 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <title>聊天窗</title>
+    <link rel="stylesheet" href="//res.layui.com/layui/dist/css/layui.css?t=1545041465480" media="all">
     <script th:src="'https://code.jquery.com/jquery-3.3.1.min.js'"></script>
     <script>
-        var name = "[[${name}]]", id = "[[${id}]]", address = "47.93.219.36:8080", target, socket;
+        var name = "[[${name}]]", id = "[[${id}]]", all="[[${all}]]", address = "47.93.219.36:8080", target, type, socket;
         var gentle = new Array("小哥哥","小姐姐");
-        //address = "127.0.0.1:8001";
+        address = "127.0.0.1:8001";
         $(function(){
             $.ajax({
                 url: "list",
@@ -17,10 +18,10 @@
                 }
             });
             function genList(msg){
-                var html = "";
+                var html = "<li id='"+all+"'><a href='javascript:toChat(\""+all+"\");'>全部聊天</a></li>";
                 $.each(msg, function (n, value) {
                     if(id == value.id){ return; }
-                    html += "<li id='"+value.id+"'><a href='javascript:toChart(\""+value.id+"\");'>" + value.nickName + "(" + gentle[value.gentle] + ")</a></li>";
+                    html += "<li id='"+value.id+"'><a href='javascript:toChat(\""+value.id+"\");'>" + value.nickName + "(" + gentle[value.gentle] + ")</a></li>";
                 });
                 if(html.indexOf("li") == -1){
                     html += "<h5>暂无老吊在线</h5>";
@@ -38,17 +39,23 @@
         });
 
         // 打开聊天窗
-        function toChart(id){
+        function toChat(id){
             target = id;
+            if(id == all) {
+                type = 2;
+            } else{
+                type = 1;
+            }
+
             $("#" + id).find("span").remove();
             var toRead = $("#" + id + "_toRead").html();
             $("#content").html(toRead);
-            $("#chart_box").show();
+            $("#chat_box").show();
             $("#" + id + "_toRead").remove();
         }
 
         function createSocket(){
-            var url = "ws://" + address + "/webSocket/websocket/" + id;
+            var url = "ws://" + address + "/webSocket/webServer/" + id;
             socket = new WebSocket(url);
             // Web Socket 已连接上
             socket.onopen = function() {
@@ -56,17 +63,17 @@
             // 收到消息监听事件
             socket.onmessage = function (msg) {
                 msg = JSON.parse(msg.data);
-                // 1.好友消息 2.系统提示
-                if(msg.type == "1" || msg.type == "2"){ receiveMsg(msg); }
-                // 3.上线提醒
-                if(msg.type == "3"){ onlineRemind(msg); }
-                // 3.离线提醒
-                if(msg.type == "4"){ offLineRemind(msg); }
+                // 1.好友消息 2.群消息 3.系统提示
+                if(msg.type == "1"|| msg.type == "2" || msg.type == "3"){ receiveMsg(msg); }
+                // 4.上线提醒
+                if(msg.type == "4"){ onlineRemind(msg); }
+                // 5.离线提醒
+                if(msg.type == "5"){ offLineRemind(msg); }
             };
             // 关闭 websocket
             socket.onclose = function() {
                 // 重连
-                createSocket();
+                //createSocket();
             };
         }
 
@@ -74,27 +81,43 @@
          * 发送消息
          */
         function sendMsg(content){
-            socket.send(JSON.stringify({target: target,content: content}));
+            socket.send(JSON.stringify({target: target, type: type, content: content}));
             $("#content").append("<p>").append(name).append(":").append(content).append("</p>");
         }
 
         /**
-         * 收到好友/系统消息处理(type = 1/2)
+         * 收到好友/系统消息处理(type = 1/3)
          * @param socket
          * @param content
          */
         function receiveMsg(msg){
-            var charter = msg.remark;
+            var chatter = msg.remark;
             // 处理系统消息
-            if(msg.type=="2"){
+            if(msg.type=="3"){
                 $("#content").append("<b>").append(msg.content).append("</b>");
-            }else if(target == charter.id){
-                // 当前窗口
-                $("#content").append("<p>").append(msg.content).append("</p>");
-            }else{
-                // 非当前窗口
-                var html = "<div id='"+charter.id +"_toRead' style='display: none;'><p>" + msg.content + "</p></div>";
-                $("#"+charter.id).append("<span>&nbsp;有未读消息</span>").append(html);
+            } else {
+                var to;
+                if (msg.type=="1"){
+                    // one to one
+                    to = chatter.id;
+                }else if (msg.type=="2"){
+                    // 群聊
+                    to = all;
+                }
+                if(target == to){
+                    // 当前窗口
+                    $("#content").append("<p>").append(msg.content).append("</p>");
+                }else{
+                    // 非当前窗口
+                    if($("#"+to+"_toRead").length > 0) {
+                        $("#" + to + "_toRead").append("<p>" + msg.content + "</p>");
+                        var number = $("#" + to + "_number").html();
+                        $("#" + to + "_number").html(parseInt(number)+1);
+                    } else{
+                        var html = "<div id='"+to +"_toRead' style='display: none;'><p>" + msg.content + "</p></div>";
+                        $("#"+to).append("<span>&nbsp;有未读消息&nbsp;+</span><span id='"+to+"_number'>1</span>").append(html);
+                    }
+                }
             }
         }
 
@@ -105,7 +128,7 @@
             var remindMsg = msg.content;
             var sender = msg.remark;
             if($("#list").html().indexOf(sender.id) > -1){ return; }
-            var html = "<li id='"+sender.id+"'><a href='javascript:toChart(\""+sender.id+"\");'>" + sender.nickName + "(" + gentle[sender.gentle] + ")</a></li>";
+            var html = "<li id='"+sender.id+"'><a href='javascript:toChat(\""+sender.id+"\");'>" + sender.nickName + "(" + gentle[sender.gentle] + ")</a></li>";
             if($("#list").find("li").length > 0) {
                 $("#list").append(html);
             } else {
@@ -117,9 +140,9 @@
          * 好友离线处
          */
         function offLineRemind(msg){
-            var charter = msg.remark;
-            if($("#list").html().indexOf(charter.id) > -1){
-                $("#" + charter.id).remove();
+            var chatter = msg.remark;
+            if($("#list").html().indexOf(chatter.id) > -1){
+                $("#" + chatter.id).remove();
             }
         }
 
@@ -139,7 +162,7 @@
         <h4>在线列表</h4>
         <div id="list"></div>
     </div>
-    <div id="chart_box" class="layui-body" style="width: 500px;margin: auto;display: none;">
+    <div id="chat_box" class="layui-body" style="width: 500px;margin: auto;display: none;">
         <!-- 聊天框 -->
         <h5>欢迎使用在线聊天 ！</h5>
         <!--内容框-->

@@ -8,7 +8,7 @@ package com.person.websocket.model;
  * @version 1.0.0
  * @date 2019-1-11
  */
-public class Charter {
+public class Chatter {
 
 
     /**

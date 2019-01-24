@@ -1,18 +1,21 @@
 package com.person.websocket.handler;
 
 import com.alibaba.fastjson.JSONObject;
-import com.person.websocket.MessageType;
-import com.person.websocket.model.Charter;
+import com.person.websocket.enums.GroupChatEnum;
+import com.person.websocket.enums.MessageTypeEnum;
+import com.person.websocket.model.Chatter;
 import com.person.websocket.model.Message;
 import com.person.websocket.util.OnlinePool;
 import com.person.websocket.util.ServerEncoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
 
 import javax.websocket.*;
 import javax.websocket.server.PathParam;
 import javax.websocket.server.ServerEndpoint;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -25,53 +28,86 @@ import java.util.Map;
  * @version 1.0.0
  * @date 2019-1-11
  */
-@ServerEndpoint(value = "/websocket/{id}", encoders = { ServerEncoder.class })
+@ServerEndpoint(value = "/webServer/{id}", encoders = { ServerEncoder.class })
 @Component
 public class WebSocketServer {
 
     private static final Logger log = LoggerFactory.getLogger(WebSocketServer.class);
 
-    private static Map<String, Session> sessionMap = new HashMap<>();
-
     @OnOpen
     public void onOpen(@PathParam("id") String id, Session session) {
-        Charter charter = OnlinePool.onlineCharter.get(id);
-        if (charter == null) {
+        Chatter chatter = OnlinePool.onlineChatter.get(id);
+        if (chatter == null) {
             return;
         }
-        for (Map.Entry<String, Session> stringSessionEntry : sessionMap.entrySet()) {
-            sendMessage(stringSessionEntry.getValue(), new Message(proxyContent(String.format("老吊【%s】上线了", charter.getNickName()),
-                    MessageType.ONLINE_REMIND_MESSAGE.getCode()), MessageType.ONLINE_REMIND_MESSAGE.getCode(), charter));
-        }
-        sessionMap.put(id, session);
-    }
 
-    @OnMessage
-    public void onMessage(@PathParam("id") String id, String message, Session session) {
-        Charter charter = OnlinePool.onlineCharter.get(id);
-        if (charter == null) {
-            return;
+        for (Map.Entry<String, Session> stringSessionEntry : OnlinePool.sessionMap.entrySet()) {
+            if (id.equals(stringSessionEntry.getKey())) {
+                continue;
+            }
+            sendMessage(stringSessionEntry.getValue(), new Message(proxyContent(String.format("老吊【%s】上线了", chatter.getNickName()),
+                    MessageTypeEnum.ONLINE_REMIND_MESSAGE.getCode()), MessageTypeEnum.ONLINE_REMIND_MESSAGE.getCode(), chatter));
         }
-        log.info("来自客户端{}的消息:{}", charter.getNickName(), message);
-        Message msg = JSONObject.parseObject(message, Message.class);
-        Session targetSession = sessionMap.get(msg.getTarget());
-        if (targetSession == null) {
-            sendMessage(session, new Message(proxyContent("对方已离线", MessageType.SYSTEM_MESSAGE.getCode()), MessageType.SYSTEM_MESSAGE.getCode()));
+
+        // 添加在线session
+        OnlinePool.sessionMap.put(id, session);
+        // 加入所有群聊
+        Map<String, Session> sessionMap = OnlinePool.chatGroupSessionMap.get(Integer.toString(GroupChatEnum.ALL_GROUP.getCode()));
+        if (CollectionUtils.isEmpty(sessionMap)) {
+            sessionMap = new HashMap<>();
+            sessionMap.put(id, session);
+            OnlinePool.chatGroupSessionMap.put(Integer.toString(GroupChatEnum.ALL_GROUP.getCode()), sessionMap);
         } else {
-            sendMessage(targetSession, new Message(charter.getNickName() + ":" + msg.getContent(), MessageType.CHART_MESSAGE.getCode(), charter));
+            sessionMap.put(id, session);
         }
     }
 
     @OnClose
-    public void OnClose(@PathParam("id") String id) {
-        Charter charter = OnlinePool.onlineCharter.get(id);
-        sessionMap.remove(id);
-        OnlinePool.onlineCharter.remove(id);
-        for (Map.Entry<String, Session> stringSessionEntry : sessionMap.entrySet()) {
-            sendMessage(stringSessionEntry.getValue(), new Message(proxyContent(String.format("老吊【%s】下线了", charter.getNickName()),
-                    MessageType.OFF_LINE_REMIND_MESSAGE.getCode()), MessageType.OFF_LINE_REMIND_MESSAGE.getCode(), charter));
+    public void onClose(@PathParam("id") String id) {
+        Chatter chatter = OnlinePool.onlineChatter.get(id);
+        if (chatter != null) {
+            for (Map.Entry<String, Session> stringSessionEntry : OnlinePool.sessionMap.entrySet()) {
+                if (id.equals(stringSessionEntry.getKey())) {
+                    continue;
+                }
+                sendMessage(stringSessionEntry.getValue(), new Message(proxyContent(String.format("老吊【%s】下线了", chatter.getNickName()),
+                        MessageTypeEnum.OFF_LINE_REMIND_MESSAGE.getCode()), MessageTypeEnum.OFF_LINE_REMIND_MESSAGE.getCode(), chatter));
+            }
+        }
+        OnlinePool.sessionMap.remove(id);
+        OnlinePool.onlineChatter.remove(id);
+        // 退出所有群聊
+        Map<String, Session> sessionMap = OnlinePool.chatGroupSessionMap.get(Integer.toString(GroupChatEnum.ALL_GROUP.getCode()));
+        if (!CollectionUtils.isEmpty(sessionMap)) {
+            sessionMap.remove(id);
         }
         log.info("{}断开连接", id);
+    }
+
+    @OnMessage
+    public void onMessage(@PathParam("id") String id, String message, Session session) {
+        Chatter chatter = OnlinePool.onlineChatter.get(id);
+        if (chatter == null) {
+            return;
+        }
+        log.info("来自客户端{}的消息:{}", chatter.getNickName(), message);
+        Message msg = JSONObject.parseObject(message, Message.class);
+        if (msg.getType() == MessageTypeEnum.CHAT_MESSAGE.getCode()) {
+            Session targetSession = OnlinePool.sessionMap.get(msg.getTarget());
+            if (targetSession == null) {
+                sendMessage(session, new Message(proxyContent("对方已离线", MessageTypeEnum.SYSTEM_MESSAGE.getCode()), MessageTypeEnum.SYSTEM_MESSAGE.getCode()));
+            } else {
+                sendMessage(targetSession, new Message(chatter.getNickName() + ":" + msg.getContent(), MessageTypeEnum.CHAT_MESSAGE.getCode(), chatter));
+            }
+        } else if (msg.getType() == MessageTypeEnum.CHAR_GROUP_MESSAGE.getCode()) {
+            Map<String, Session> sessionMap = OnlinePool.chatGroupSessionMap.get(msg.getTarget());
+            for (Map.Entry<String, Session> sessionEntry : sessionMap.entrySet()) {
+                if (id.equals(sessionEntry.getKey())) {
+                    continue;
+                }
+                sendMessage(sessionEntry.getValue(), new Message(chatter.getNickName() + ":" + msg.getContent(), MessageTypeEnum.CHAR_GROUP_MESSAGE.getCode(), chatter));
+            }
+        }
     }
 
     private void sendMessage(Session session, Message message){
@@ -83,9 +119,10 @@ public class WebSocketServer {
     }
 
     private String proxyContent(String content, int code){
-        if (code == MessageType.CHART_MESSAGE.getCode()) {
+        if (code == MessageTypeEnum.CHAT_MESSAGE.getCode()) {
             return content;
         }
-        return MessageType.getDescByCode(code) + ": " + content;
+        return MessageTypeEnum.getDescByCode(code) + ": " + content;
     }
+
 }
